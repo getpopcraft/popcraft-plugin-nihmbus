@@ -6,7 +6,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "test": "node --test test/",
+    "test": "node --test test/*.test.mjs",
     "pack": "node scripts/pack.mjs",
     "lint": "eslint . && prettier --check . && markdownlint-cli2 \"**/*.md\" \"#node_modules\"",
     "format": "prettier --write ."
