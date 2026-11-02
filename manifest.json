@@ -1,0 +1,11 @@
+{
+  "id": "popcraft.nihmbus",
+  "name": "Nihmbus",
+  "version": "0.1.0",
+  "description": "Connect this editor to Nihmbus so your Nihmbus agents can design, animate and export in it.",
+  "author": "PopCraft",
+  "main": "main.js",
+  "ui": "ui.html",
+  "permissions": ["read", "write", "export", "network"],
+  "commands": [{ "id": "connect", "label": "Connect" }]
+}
