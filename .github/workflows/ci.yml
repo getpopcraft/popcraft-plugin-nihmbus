@@ -1,14 +1,31 @@
 name: CI
-on: [push, pull_request]
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
-        with: { node-version: 22 }
+        with:
+          node-version: 22
+          cache: npm
       - run: npm ci
       - run: npm run lint
-      - run: node --check main.js
       - run: npm test
       - run: npm run pack
+      - run: node scripts/publish.mjs --dry-run
+      - name: Matches the extension's tool contract
+        run: node scripts/contract-check.mjs
+      - name: Conventional commits (they decide the release)
+        if: github.event_name == 'pull_request'
+        run: node scripts/check-commits.mjs origin/${{ github.base_ref }} ${{ github.event.pull_request.head.sha }}

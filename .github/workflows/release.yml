@@ -1,0 +1,100 @@
+# Conventional commits on main -> next version via sem -> version commit, tag + GitHub prerelease with the
+# installable bundle attached. Promote that release (uncheck "Set as a pre-release") and marketplace.yml publishes
+# it to the PopCraft marketplace. Same promote-style flow as getpopcraft/plugins and tishlang/sem.
+
+name: Release (prerelease)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Tag and prerelease
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+
+      - name: Next version via sem (dry-run)
+        id: sem
+        uses: tishlang/sem@v1
+        with:
+          dry_run: true
+          config: |
+            branches:
+              - main
+            plugins:
+              - "@sem/commit-analyzer"
+              - "@sem/release-notes-generator"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Skip when no bump
+        id: gate
+        run: |
+          if [ "${{ steps.sem.outputs.new_release_published }}" != "true" ]; then
+            echo "::notice::No version bump — nothing to release."
+            echo "continue=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "continue=true" >> "$GITHUB_OUTPUT"
+          echo "version=${{ steps.sem.outputs.new_release_version }}" >> "$GITHUB_OUTPUT"
+
+      - name: Set the version (manifest.json, main.js, package.json)
+        if: steps.gate.outputs.continue == 'true'
+        run: |
+          node scripts/set-version.mjs "${{ steps.gate.outputs.version }}"
+          npm install --package-lock-only --ignore-scripts
+          npx prettier --write manifest.json package.json package-lock.json
+
+      - name: Pack the installable bundle
+        if: steps.gate.outputs.continue == 'true'
+        run: npm run pack
+
+      - name: Commit the version bump
+        if: steps.gate.outputs.continue == 'true'
+        env:
+          VERSION: ${{ steps.gate.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add manifest.json main.js package.json package-lock.json
+          git commit -m "chore(release): v${VERSION} [skip ci]" || true
+          git push origin HEAD:main
+
+      - name: Tag + GitHub prerelease via sem
+        if: steps.gate.outputs.continue == 'true'
+        uses: tishlang/sem@v1
+        with:
+          force: ${{ steps.gate.outputs.version }}
+          config: |
+            branches:
+              - main
+            plugins:
+              - "@sem/commit-analyzer"
+              - "@sem/release-notes-generator"
+              - ["@sem/github", { "prerelease": true, "assets": [{ "path": "dist/*.json", "label": "Plugin bundle (Install from file…)" }] }]
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,58 @@
+# Publish the plugin to the PopCraft marketplace when a release is promoted from prerelease (or by hand).
+#
+# AUTH: a PopCraft personal access token with the `marketplace:publish` scope (Account → Personal access tokens),
+# stored as the secret POPCRAFT_TOKEN in the `marketplace` environment. POPCRAFT_URL (a repository variable)
+# overrides the target, e.g. a staging deployment.
+#
+# Idempotent: an already-published version comes back 409 and is skipped, so the `edited` event and re-runs stay
+# green. A new version goes to marketplace review before it is listed.
+
+name: Marketplace
+
+on:
+  release:
+    types: [published, edited]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish (e.g. v0.2.0)
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marketplace
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish to the marketplace
+    # Promote path: a full release (not a draft, not a prerelease), or a manual run.
+    if: github.event_name == 'workflow_dispatch' || (github.event.release.draft == false && github.event.release.prerelease == false)
+    runs-on: ubuntu-latest
+    environment: marketplace
+    steps:
+      - name: Checkout the release tag
+        uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ github.event.release.tag_name || inputs.tag }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check the tag matches the manifest
+        run: |
+          TAG="${{ github.event.release.tag_name || inputs.tag }}"
+          VERSION=$(node -p "require('./manifest.json').version")
+          if [ "v${VERSION}" != "${TAG}" ]; then
+            echo "::error::manifest.json is ${VERSION} but the tag is ${TAG}"
+            exit 1
+          fi
+
+      - name: Publish
+        env:
+          POPCRAFT_TOKEN: ${{ secrets.POPCRAFT_TOKEN }}
+          POPCRAFT_URL: ${{ vars.POPCRAFT_URL || 'https://popcraft.app' }}
+        run: node scripts/publish.mjs

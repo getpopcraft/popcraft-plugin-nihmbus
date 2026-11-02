@@ -93,13 +93,15 @@ ui.html                  the panel
 docs/tools.md            the tool contract, shared with the extension
 scripts/pack.mjs         builds the installable bundle and checks versions agree
 scripts/contract-check.mjs  compares the tools, protocol and allowlist with the extension's manifest
+scripts/set-version.mjs  sets the version in manifest.json, main.js and package.json (used by the release)
+scripts/publish.mjs      publishes to the PopCraft marketplace (used on promote)
 test/                    node:test tests, no dependencies
 ```
 
-**Keep the contract in step with the extension.** If a change breaks [docs/tools.md](docs/tools.md), bump
-`EXTENSION_PROTOCOL` in `main.js` and `device.protocol` in the extension, and release both together. To release, bump
-the version in `manifest.json`, `main.js` and `package.json` (`npm run pack` checks they match), and attach the packed
-`.json` to a GitHub release.
+**Releases** are automatic from [Conventional Commits](https://www.conventionalcommits.org) with
+[tishlang/sem](https://github.com/tishlang/sem): merging to `main` makes a prerelease with the bundle attached, and
+promoting it publishes to the PopCraft marketplace. See [CONTRIBUTING.md](CONTRIBUTING.md). If a change breaks
+[docs/tools.md](docs/tools.md), bump `EXTENSION_PROTOCOL` here and `device.protocol` in the extension together.
 
 ## Related
 
