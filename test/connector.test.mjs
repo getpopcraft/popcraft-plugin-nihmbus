@@ -18,7 +18,12 @@ function fakeRelay({ commands = [], pollStatus = 200, onIdle = () => {} } = {}) 
     assert.equal(headers['X-Nihmbus-Extension-Protocol'], '1')
     if (path.endsWith('/pair')) {
       return JSON.parse(init.body).code === 'GOOD-CODE'
-        ? json(200, { token: 'nxd_secret', device: { name: 'PopCraft' }, workspaceName: 'Acme', serverUrl: 'https://nihmbus.test' })
+        ? json(200, {
+            token: 'nxd_secret',
+            device: { name: 'PopCraft' },
+            workspaceName: 'Acme',
+            serverUrl: 'https://nihmbus.test',
+          })
         : json(401, { error: 'That code is invalid or expired.' })
     }
     assert.equal(headers.Authorization, 'Bearer nxd_secret')
@@ -29,10 +34,18 @@ function fakeRelay({ commands = [], pollStatus = 200, onIdle = () => {} } = {}) 
       if (!command) onIdle()
       return json(200, { command })
     }
-    if (path.endsWith('/result')) { results.push(JSON.parse(init.body)); return json(200, { accepted: true }) }
+    if (path.endsWith('/result')) {
+      results.push(JSON.parse(init.body))
+      return json(200, { accepted: true })
+    }
     if (path.endsWith('/upload')) {
       const b = JSON.parse(init.body)
-      return json(200, { url: `https://blob.test/put/${b.filename}`, method: 'PUT', headers: { 'Content-Type': b.contentType }, pathname: `ws/w/ext-devices/popcraft/${b.commandId}/${b.filename}` })
+      return json(200, {
+        url: `https://blob.test/put/${b.filename}`,
+        method: 'PUT',
+        headers: { 'Content-Type': b.contentType },
+        pathname: `ws/w/ext-devices/popcraft/${b.commandId}/${b.filename}`,
+      })
     }
     return json(404, {})
   }
@@ -78,7 +91,16 @@ test('refuses non-https servers', async () => {
 test('runs status, call (batched) and export, and reports each result', async () => {
   const commands = [
     { id: 'c1', tool: 'status', args: {} },
-    { id: 'c2', tool: 'call', args: { calls: [{ method: 'createNode', args: ['TEXT', { name: 'Title' }] }, { method: 'setText', args: ['n-1', 'Hello'] }] } },
+    {
+      id: 'c2',
+      tool: 'call',
+      args: {
+        calls: [
+          { method: 'createNode', args: ['TEXT', { name: 'Title' }] },
+          { method: 'setText', args: ['n-1', 'Hello'] },
+        ],
+      },
+    },
     { id: 'c3', tool: 'export', args: { nodeId: 'f1', format: 'PNG', scale: 2 } },
     { id: 'c4', tool: 'export', args: { nodeId: 'f1', format: 'SVG', filename: 'logo' } },
   ]
@@ -89,9 +111,18 @@ test('runs status, call (batched) and export, and reports each result', async ()
   assert.equal(byId.c1.result.page.id, 'page-1')
   assert.deepEqual(byId.c1.result.selection, [{ id: 'f1', name: 'Poster', type: 'FRAME' }])
   assert.deepEqual(byId.c2.result, { results: ['n-1', null] })
-  assert.deepEqual(f.calls.slice(0, 2), [['createNode', 'TEXT', { name: 'Title' }], ['setText', 'n-1', 'Hello']])
+  assert.deepEqual(f.calls.slice(0, 2), [
+    ['createNode', 'TEXT', { name: 'Title' }],
+    ['setText', 'n-1', 'Hello'],
+  ])
   assert.deepEqual(byId.c3.result, { exported: { nodeId: 'f1', format: 'PNG', bytes: 4 } })
-  assert.deepEqual(byId.c3.files, [{ pathname: 'ws/w/ext-devices/popcraft/c3/Poster - Final.png', name: 'Poster - Final.png', contentType: 'image/png' }])
+  assert.deepEqual(byId.c3.files, [
+    {
+      pathname: 'ws/w/ext-devices/popcraft/c3/Poster - Final.png',
+      name: 'Poster - Final.png',
+      contentType: 'image/png',
+    },
+  ])
   assert.deepEqual(f.calls[2], ['upload', 'https://blob.test/put/Poster - Final.png', 'PUT', 'image/png', 4])
   assert.equal(byId.c4.files[0].name, 'logo.svg')
   assert.equal(byId.c4.files[0].contentType, 'image/svg+xml')
@@ -101,7 +132,16 @@ test('refuses methods outside the allowlist, bad args and unknown tools', async 
   const commands = [
     { id: 'a', tool: 'call', args: { method: 'storageSet', args: [] } },
     { id: 'b', tool: 'call', args: { method: 'createNode', args: 'TEXT' } },
-    { id: 'c', tool: 'call', args: { calls: [{ method: 'createNode', args: ['RECTANGLE'] }, { method: 'setKeyframes', args: [{}] }] } },
+    {
+      id: 'c',
+      tool: 'call',
+      args: {
+        calls: [
+          { method: 'createNode', args: ['RECTANGLE'] },
+          { method: 'setKeyframes', args: [{}] },
+        ],
+      },
+    },
     { id: 'd', tool: 'rm_rf', args: {} },
     { id: 'e', tool: 'export', args: { nodeId: 'missing' } },
   ]
@@ -133,7 +173,12 @@ test('an outdated plugin stops and says so', async () => {
 
 test('reconnects from storage on start, and checks the token first', async () => {
   const f = fakeApi()
-  f.store.set('connection', { server: 'https://nihmbus.test', token: 'nxd_secret', deviceName: 'PopCraft', workspaceName: null })
+  f.store.set('connection', {
+    server: 'https://nihmbus.test',
+    token: 'nxd_secret',
+    deviceName: 'PopCraft',
+    workspaceName: null,
+  })
   let c
   const relay = fakeRelay({ onIdle: () => c.stop() })
   c = createConnector({ api: f.api, fetch: relay.fetch, sleep: async () => c.stop() })

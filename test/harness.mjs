@@ -4,7 +4,21 @@ import vm from 'node:vm'
 
 export function loadConnector() {
   const src = readFileSync(new URL('../main.js', import.meta.url), 'utf8')
-  const ctx = vm.createContext({ __NIHMBUS_TEST__: true, URL, TextEncoder, setTimeout, Promise, JSON, Math, Array, Set, String, Number, Error, Object })
+  const ctx = vm.createContext({
+    __NIHMBUS_TEST__: true,
+    URL,
+    TextEncoder,
+    setTimeout,
+    Promise,
+    JSON,
+    Math,
+    Array,
+    Set,
+    String,
+    Number,
+    Error,
+    Object,
+  })
   ctx.globalThis = ctx
   vm.runInContext(src + '\n;globalThis.createConnector = createConnector', ctx)
   return ctx.createConnector
@@ -23,13 +37,25 @@ export function fakeApi() {
     getCurrentPage: async () => ({ id: 'page-1', name: 'Page 1', childIds: ['f1'] }),
     getSelection: async () => [{ id: 'f1', name: 'Poster', type: 'FRAME', x: 0 }],
     getNode: async (id) => (id === 'f1' ? { id: 'f1', name: 'Poster / Final', type: 'FRAME' } : null),
-    createNode: async (type, props) => { calls.push(['createNode', type, props]); return 'n-' + calls.length },
-    setText: async (id, text) => { calls.push(['setText', id, text]) },
-    setKeyframes: async () => { throw new Error('bad keyframes') },
+    createNode: async (type, props) => {
+      calls.push(['createNode', type, props])
+      return 'n-' + calls.length
+    },
+    setText: async (id, text) => {
+      calls.push(['setText', id, text])
+    },
+    setKeyframes: async () => {
+      throw new Error('bad keyframes')
+    },
     exportNode: async (id, opts) => (opts.format === 'SVG' ? '<svg/>' : new Uint8Array([1, 2, 3, 4])),
-    upload: async (url, opts) => { calls.push(['upload', url, opts.method, opts.contentType, opts.body.byteLength]); return { ok: true, status: 200, body: '' } },
+    upload: async (url, opts) => {
+      calls.push(['upload', url, opts.method, opts.contentType, opts.body.byteLength])
+      return { ok: true, status: 200, body: '' }
+    },
     // Exists on the real API but must never be callable through `call`.
-    storageSet: async () => { calls.push(['storageSet']) },
+    storageSet: async () => {
+      calls.push(['storageSet'])
+    },
   }
   return { api, store, calls, sent }
 }

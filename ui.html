@@ -1,82 +1,199 @@
 <!doctype html>
 <html>
-<head>
-<meta charset="utf-8">
-<style>
-  :root { --bg: #fff; --fg: #1d1d1f; --muted: #6e6e73; --line: #d9d9de; --accent: #5b4cf0; --ok: #1f9d55; --warn: #c0392b; }
-  @media (prefers-color-scheme: dark) { :root { --bg: #1c1c1e; --fg: #f2f2f7; --muted: #a1a1a6; --line: #3a3a3c; --accent: #8b80ff; --ok: #34c759; --warn: #ff6b5e; } }
-  * { box-sizing: border-box; }
-  body { margin: 0; padding: 14px; font: 12px/1.45 system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--fg); }
-  h1 { font-size: 13px; margin: 0 0 4px; }
-  p { margin: 0 0 10px; color: var(--muted); }
-  label { display: block; margin: 8px 0 4px; font-weight: 600; }
-  input { width: 100%; padding: 7px 8px; border: 1px solid var(--line); border-radius: 7px; background: transparent; color: var(--fg); font: inherit; }
-  input.code { font: 600 18px/1 ui-monospace, monospace; letter-spacing: 3px; text-transform: uppercase; text-align: center; }
-  .row { display: flex; gap: 8px; margin-top: 12px; }
-  button { flex: 1; padding: 7px 10px; border-radius: 7px; border: 1px solid var(--line); background: transparent; color: var(--fg); font: inherit; cursor: pointer; }
-  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  button:disabled { opacity: .5; cursor: default; }
-  .status { display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 6px; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
-  .dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); }
-  .err { color: var(--warn); margin-top: 8px; min-height: 1em; }
-  a { color: var(--accent); cursor: pointer; }
-  [hidden] { display: none !important; }
-</style>
-</head>
-<body>
-  <section id="connect" hidden>
-    <h1>Connect to Nihmbus</h1>
-    <p>In Nihmbus, open <b>Extensions → PopCraft → Connect PopCraft</b> and enter the code it shows.</p>
-    <label for="code">Pairing code</label>
-    <input id="code" class="code" maxlength="9" placeholder="ABCD-1234" autocomplete="off" spellcheck="false">
-    <div id="serverRow" hidden>
-      <label for="server">Nihmbus server</label>
-      <input id="server" placeholder="https://nihmbus.ai" autocomplete="off" spellcheck="false">
-    </div>
-    <p style="margin-top:6px"><a id="toggleServer">Use a different server</a></p>
-    <div class="row"><button id="pair" class="primary">Connect</button></div>
-  </section>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      :root {
+        --bg: #fff;
+        --fg: #1d1d1f;
+        --muted: #6e6e73;
+        --line: #d9d9de;
+        --accent: #5b4cf0;
+        --ok: #1f9d55;
+        --warn: #c0392b;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #1c1c1e;
+          --fg: #f2f2f7;
+          --muted: #a1a1a6;
+          --line: #3a3a3c;
+          --accent: #8b80ff;
+          --ok: #34c759;
+          --warn: #ff6b5e;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 14px;
+        font:
+          12px/1.45 system-ui,
+          -apple-system,
+          sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+      }
+      h1 {
+        font-size: 13px;
+        margin: 0 0 4px;
+      }
+      p {
+        margin: 0 0 10px;
+        color: var(--muted);
+      }
+      label {
+        display: block;
+        margin: 8px 0 4px;
+        font-weight: 600;
+      }
+      input {
+        width: 100%;
+        padding: 7px 8px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: transparent;
+        color: var(--fg);
+        font: inherit;
+      }
+      input.code {
+        font:
+          600 18px/1 ui-monospace,
+          monospace;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        text-align: center;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      button {
+        flex: 1;
+        padding: 7px 10px;
+        border-radius: 7px;
+        border: 1px solid var(--line);
+        background: transparent;
+        color: var(--fg);
+        font: inherit;
+        cursor: pointer;
+      }
+      button.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .status {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--muted);
+      }
+      .dot.ok {
+        background: var(--ok);
+      }
+      .dot.warn {
+        background: var(--warn);
+      }
+      .err {
+        color: var(--warn);
+        margin-top: 8px;
+        min-height: 1em;
+      }
+      a {
+        color: var(--accent);
+        cursor: pointer;
+      }
+      [hidden] {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <section id="connect" hidden>
+      <h1>Connect to Nihmbus</h1>
+      <p>In Nihmbus, open <b>Extensions → PopCraft → Connect PopCraft</b> and enter the code it shows.</p>
+      <label for="code">Pairing code</label>
+      <input id="code" class="code" maxlength="9" placeholder="ABCD-1234" autocomplete="off" spellcheck="false" />
+      <div id="serverRow" hidden>
+        <label for="server">Nihmbus server</label>
+        <input id="server" placeholder="https://nihmbus.ai" autocomplete="off" spellcheck="false" />
+      </div>
+      <p style="margin-top: 6px"><a id="toggleServer">Use a different server</a></p>
+      <div class="row"><button id="pair" class="primary">Connect</button></div>
+    </section>
 
-  <section id="connected" hidden>
-    <div class="status"><span id="dot" class="dot"></span><span id="statusText"></span></div>
-    <p id="where"></p>
-    <p>Keep this plugin running while agents work. Hiding this panel is fine; closing it disconnects.</p>
-    <div class="row">
-      <button id="hide">Hide panel</button>
-      <button id="disconnect">Disconnect</button>
-    </div>
-  </section>
+    <section id="connected" hidden>
+      <div class="status"><span id="dot" class="dot"></span><span id="statusText"></span></div>
+      <p id="where"></p>
+      <p>Keep this plugin running while agents work. Hiding this panel is fine; closing it disconnects.</p>
+      <div class="row">
+        <button id="hide">Hide panel</button>
+        <button id="disconnect">Disconnect</button>
+      </div>
+    </section>
 
-  <div id="error" class="err"></div>
+    <div id="error" class="err"></div>
 
-<script>
-  const $ = (id) => document.getElementById(id)
-  const TEXT = { connected: 'Connected', working: 'Working…', offline: 'Reconnecting…', paused: 'Paused', outdated: 'Update needed', pairing: 'Connecting…' }
+    <script>
+      const $ = (id) => document.getElementById(id)
+      const TEXT = {
+        connected: 'Connected',
+        working: 'Working…',
+        offline: 'Reconnecting…',
+        paused: 'Paused',
+        outdated: 'Update needed',
+        pairing: 'Connecting…',
+      }
 
-  popcraft.onmessage = (msg) => {
-    if (!msg || msg.type !== 'state') return
-    const linked = !!msg.conn && msg.status !== 'disconnected'
-    $('connect').hidden = linked
-    $('connected').hidden = !linked
-    $('pair').disabled = msg.status === 'pairing'
-    $('error').textContent = msg.status === 'connected' || msg.status === 'working' ? '' : (msg.detail || '')
-    if (linked) {
-      $('statusText').textContent = msg.status === 'working' ? `Working: ${msg.detail}` : (TEXT[msg.status] || msg.status)
-      $('dot').className = 'dot ' + (msg.status === 'connected' || msg.status === 'working' ? 'ok' : 'warn')
-      $('where').textContent = [msg.conn.deviceName, msg.conn.workspaceName && `in ${msg.conn.workspaceName}`, msg.conn.server !== 'https://nihmbus.ai' && msg.conn.server].filter(Boolean).join(' · ')
-    }
-  }
+      popcraft.onmessage = (msg) => {
+        if (!msg || msg.type !== 'state') return
+        const linked = !!msg.conn && msg.status !== 'disconnected'
+        $('connect').hidden = linked
+        $('connected').hidden = !linked
+        $('pair').disabled = msg.status === 'pairing'
+        $('error').textContent = msg.status === 'connected' || msg.status === 'working' ? '' : msg.detail || ''
+        if (linked) {
+          $('statusText').textContent =
+            msg.status === 'working' ? `Working: ${msg.detail}` : TEXT[msg.status] || msg.status
+          $('dot').className = 'dot ' + (msg.status === 'connected' || msg.status === 'working' ? 'ok' : 'warn')
+          $('where').textContent = [
+            msg.conn.deviceName,
+            msg.conn.workspaceName && `in ${msg.conn.workspaceName}`,
+            msg.conn.server !== 'https://nihmbus.ai' && msg.conn.server,
+          ]
+            .filter(Boolean)
+            .join(' · ')
+        }
+      }
 
-  $('toggleServer').onclick = () => { $('serverRow').hidden = !$('serverRow').hidden }
-  $('pair').onclick = () => {
-    $('error').textContent = ''
-    popcraft.postMessage({ type: 'pair', code: $('code').value, server: $('server').value || undefined })
-  }
-  $('code').onkeydown = (e) => { if (e.key === 'Enter') $('pair').click() }
-  $('hide').onclick = () => popcraft.postMessage({ type: 'hide' })
-  $('disconnect').onclick = () => popcraft.postMessage({ type: 'disconnect' })
-  popcraft.postMessage({ type: 'ready' })
-</script>
-</body>
+      $('toggleServer').onclick = () => {
+        $('serverRow').hidden = !$('serverRow').hidden
+      }
+      $('pair').onclick = () => {
+        $('error').textContent = ''
+        popcraft.postMessage({ type: 'pair', code: $('code').value, server: $('server').value || undefined })
+      }
+      $('code').onkeydown = (e) => {
+        if (e.key === 'Enter') $('pair').click()
+      }
+      $('hide').onclick = () => popcraft.postMessage({ type: 'hide' })
+      $('disconnect').onclick = () => popcraft.postMessage({ type: 'disconnect' })
+      popcraft.postMessage({ type: 'ready' })
+    </script>
+  </body>
 </html>

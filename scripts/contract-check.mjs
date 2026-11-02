@@ -13,12 +13,16 @@ const problems = []
 const device = manifest.device ?? {}
 if (device.protocol !== protocol) problems.push(`extension protocol: manifest ${device.protocol}, plugin ${protocol}`)
 const declared = (device.tools ?? []).map((t) => t.name).sort()
-if (declared.join() !== [...tools].sort().join()) problems.push(`tools: manifest [${declared}], plugin [${[...tools].sort()}]`)
+if (declared.join() !== [...tools].sort().join())
+  problems.push(`tools: manifest [${declared}], plugin [${[...tools].sort()}]`)
 const call = (device.tools ?? []).find((t) => t.name === 'call')
 const enumList = call?.inputSchema?.properties?.method?.enum ?? []
 const missing = enumList.filter((m) => !allowed.has(m))
 const extra = [...allowed].filter((m) => !enumList.includes(m))
 if (missing.length) problems.push(`in the manifest but not allowed by the plugin: ${missing.join(', ')}`)
 if (extra.length) problems.push(`allowed by the plugin but not in the manifest: ${extra.join(', ')}`)
-if (problems.length) { for (const p of problems) console.error('✖ ' + p); process.exit(1) }
+if (problems.length) {
+  for (const p of problems) console.error('✖ ' + p)
+  process.exit(1)
+}
 console.log(`✓ contract matches: protocol ${protocol}, tools ${declared.join(', ')}, ${enumList.length} methods`)
