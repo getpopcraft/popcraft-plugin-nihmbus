@@ -7,6 +7,8 @@ export function loadConnector() {
   const ctx = vm.createContext({
     __NIHMBUS_TEST__: true,
     URL,
+    URLSearchParams,
+    AbortController,
     TextEncoder,
     setTimeout,
     Promise,

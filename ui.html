@@ -140,6 +140,7 @@
     <section id="connected" hidden>
       <div class="status"><span id="dot" class="dot"></span><span id="statusText"></span></div>
       <p id="where"></p>
+      <p id="note" hidden></p>
       <p>
         Your Nihmbus agents can design in this file while it's open. The icon in the right-hand rail shows whether
         PopCraft is connected.
@@ -155,6 +156,7 @@
       const $ = (id) => document.getElementById(id)
       const TEXT = {
         connected: 'Connected',
+        standby: 'Connected · in another tab',
         working: 'Working…',
         offline: 'Reconnecting…',
         paused: 'Paused',
@@ -168,11 +170,17 @@
         $('connect').hidden = linked
         $('connected').hidden = !linked
         $('pair').disabled = msg.status === 'pairing'
-        $('error').textContent = msg.status === 'connected' || msg.status === 'working' ? '' : msg.detail || ''
+        const fine = msg.status === 'connected' || msg.status === 'working' || msg.status === 'standby'
+        $('error').textContent = fine ? '' : msg.detail || ''
+        // Standby is not an error: this tab is connected, but agents work in the tab you used last.
+        $('note').textContent = msg.status === 'standby' ? msg.detail || '' : ''
+        $('note').hidden = msg.status !== 'standby'
         if (linked) {
           $('statusText').textContent =
             msg.status === 'working' ? `Working: ${msg.detail}` : TEXT[msg.status] || msg.status
-          $('dot').className = 'dot ' + (msg.status === 'connected' || msg.status === 'working' ? 'ok' : 'warn')
+          $('dot').className =
+            'dot ' +
+            (msg.status === 'connected' || msg.status === 'working' ? 'ok' : msg.status === 'standby' ? '' : 'warn')
           $('where').textContent = [
             msg.conn.deviceName,
             msg.conn.workspaceName && `in ${msg.conn.workspaceName}`,
