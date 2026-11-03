@@ -8,8 +8,9 @@
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "pack": "node scripts/pack.mjs",
-    "lint": "eslint . && prettier --check . && markdownlint-cli2 \"**/*.md\" \"#node_modules\"",
-    "format": "prettier --write ."
+    "lint": "eslint . && prettier --check . && markdownlint-cli2 \"**/*.md\" \"#node_modules\" && node scripts/icons.mjs --check",
+    "format": "prettier --write .",
+    "icons": "node scripts/icons.mjs"
   },
   "engines": {
     "node": ">=20"

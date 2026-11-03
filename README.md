@@ -32,11 +32,13 @@ the sandboxed App Store app.
 2. In PopCraft, install this plugin: main menu → **Manage plugins…** → search **Nihmbus** → **Install**. Or download
    the `.json` from [Releases](https://github.com/getpopcraft/popcraft-plugin-nihmbus/releases) and use **Installed →
    Install from file…**.
-3. Run **Plugins → Nihmbus → Connect** and enter the code.
-4. Leave the plugin running while agents work:
-   - **Hide panel** keeps it connected.
-   - Closing the panel, the tab or the app disconnects. Run **Connect** again to reconnect; no new code is needed.
-   - **Disconnect** (here or in Nihmbus) ends the pairing for good.
+3. Click the **Nihmbus** icon in the right-hand rail and enter the code.
+4. That's it. The rail icon shows the connection:
+   - **outline**: not connected;
+   - **the coloured Nihmbus mark**: connected, and agents can work in this file.
+
+   The plugin connects again by itself whenever you open a file. **Disconnect** (in its panel, or in Nihmbus) ends the
+   pairing for good.
 
 For a Nihmbus server other than nihmbus.ai (development or self-hosting), choose **Use a different server** in the
 panel. The address must be `https://`, or `http://localhost`.
@@ -71,8 +73,9 @@ The full contract is in [docs/tools.md](docs/tools.md).
 
 - **No video or AI yet.** Video export (MP4/GIF) and PopCraft's AI generation aren't in the plugin API yet, so agents
   build the animation and leave the final video export to you.
-- **The plugin has to keep running.** A plugin stops when PopCraft quits or its panel closes, and browsers may freeze
-  a background tab after a while. Pinning the PopCraft tab helps.
+- **A file has to be open.** The plugin runs while a PopCraft file is open, and browsers may freeze a background tab
+  after a while; pinning the PopCraft tab helps. On PopCraft builds without panel autostart, click the rail icon once
+  per file to connect.
 
 ## Develop
 
@@ -89,7 +92,9 @@ node scripts/contract-check.mjs ../nihmbus-popcraft/nihmbus.extension.json   # m
 ```text
 manifest.json            the PopCraft plugin manifest
 main.js                  the connector: pairing, polling, the tools (a createConnector factory the tests load)
-ui.html                  the panel
+ui.html                  the rail panel
+assets/icon-*.svg        the rail icons: outline (not connected) and the colour mark (connected)
+scripts/icons.mjs        inlines the icons into manifest.json and main.js (npm run icons)
 docs/tools.md            the tool contract, shared with the extension
 scripts/pack.mjs         builds the installable bundle and checks versions agree
 scripts/contract-check.mjs  compares the tools, protocol and allowlist with the extension's manifest

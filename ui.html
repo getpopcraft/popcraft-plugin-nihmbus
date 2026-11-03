@@ -140,9 +140,11 @@
     <section id="connected" hidden>
       <div class="status"><span id="dot" class="dot"></span><span id="statusText"></span></div>
       <p id="where"></p>
-      <p>Keep this plugin running while agents work. Hiding this panel is fine; closing it disconnects.</p>
+      <p>
+        Your Nihmbus agents can design in this file while it's open. The icon in the right-hand rail shows whether
+        PopCraft is connected.
+      </p>
       <div class="row">
-        <button id="hide">Hide panel</button>
         <button id="disconnect">Disconnect</button>
       </div>
     </section>
@@ -191,7 +193,6 @@
       $('code').onkeydown = (e) => {
         if (e.key === 'Enter') $('pair').click()
       }
-      $('hide').onclick = () => popcraft.postMessage({ type: 'hide' })
       $('disconnect').onclick = () => popcraft.postMessage({ type: 'disconnect' })
       popcraft.postMessage({ type: 'ready' })
     </script>

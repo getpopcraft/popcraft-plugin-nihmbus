@@ -29,11 +29,15 @@ export function fakeApi() {
   const store = new Map()
   const calls = []
   const sent = []
+  const icons = []
   const api = {
     storage: { get: async (k) => store.get(k), set: async (k, v) => void store.set(k, v) },
     ui: { postMessage: (m) => sent.push(m), onmessage: null },
     showUI: async () => {},
     hideUI: async () => {},
+    setPanelIcon: async (o) => {
+      icons.push(o)
+    },
     getCurrentPage: async () => ({ id: 'page-1', name: 'Page 1', childIds: ['f1'] }),
     getSelection: async () => [{ id: 'f1', name: 'Poster', type: 'FRAME', x: 0 }],
     getNode: async (id) => (id === 'f1' ? { id: 'f1', name: 'Poster / Final', type: 'FRAME' } : null),
@@ -57,5 +61,5 @@ export function fakeApi() {
       calls.push(['storageSet'])
     },
   }
-  return { api, store, calls, sent }
+  return { api, store, calls, sent, icons }
 }

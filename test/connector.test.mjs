@@ -187,3 +187,25 @@ test('reconnects from storage on start, and checks the token first', async () =>
   assert.equal(relay.log[0].path, '/api/ext/popcraft/device/me')
   assert.equal(c.connection.workspaceName, 'Acme')
 })
+
+test('the rail icon shows the connection: the colour mark when connected, the outline otherwise', async () => {
+  const f = fakeApi()
+  let c
+  const relay = fakeRelay({ pollStatus: 401 })
+  c = createConnector({ api: f.api, fetch: relay.fetch, sleep: async () => c.stop() })
+  await c.onMessage({ type: 'pair', code: 'GOOD-CODE', server: 'https://nihmbus.test' }) // connects, then the poll is revoked
+  await new Promise((r) => setTimeout(r, 10))
+  const colour = f.icons.findIndex((o) => o.color === true && /^data:image\/svg\+xml;base64,/.test(o.icon))
+  assert.ok(colour >= 0, 'shows the colour mark once connected')
+  assert.equal(f.icons.at(-1).icon, null, 'back to the outline after the revoke')
+  assert.equal(f.icons.at(-1).color, undefined)
+  assert.ok(f.icons.length - 1 > colour)
+})
+
+test('works on PopCraft builds without setPanelIcon', async () => {
+  const f = fakeApi()
+  delete f.api.setPanelIcon
+  const c = createConnector({ api: f.api, fetch: fakeRelay().fetch })
+  await c.pair({ code: 'GOOD-CODE', server: 'https://nihmbus.test' })
+  assert.equal(c.connection.token, 'nxd_secret')
+})
