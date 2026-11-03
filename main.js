@@ -4,7 +4,7 @@
 // Every connection is outgoing from here: the plugin long-polls Nihmbus for commands, runs them with the plugin API,
 // and posts the results. Nothing listens on this machine. Protocol: docs/protocol.md; tool contract: docs/tools.md.
 
-const PLUGIN = { id: 'popcraft.nihmbus', version: '0.2.0' }
+const PLUGIN = { id: 'popcraft.nihmbus', version: '0.3.0' }
 const RELAY_PROTOCOL = 1 // the Nihmbus device relay (core)
 const EXTENSION_PROTOCOL = 1 // the PopCraft extension's tool contract
 const EXTENSION = 'popcraft'
