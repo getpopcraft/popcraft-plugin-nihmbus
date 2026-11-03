@@ -6,14 +6,20 @@ const createConnector = loadConnector()
 const json = (status, body) => ({ ok: status >= 200 && status < 300, status, json: async () => body })
 
 /** A fake Nihmbus relay: answers pair/me/poll/result/upload, records what the plugin sent. */
-function fakeRelay({ commands = [], pollStatus = 200, onIdle = () => {} } = {}) {
+function fakeRelay({ commands = [], pollStatus = 200, onIdle = () => {}, session } = {}) {
   const log = []
   const results = []
   const queue = [...commands]
   const fetch = async (url, init = {}) => {
     const path = new URL(url).pathname
     const headers = init.headers || {}
-    log.push({ path, method: init.method || 'GET', headers, body: init.body ? JSON.parse(init.body) : undefined })
+    log.push({
+      path,
+      query: new URL(url).search,
+      method: init.method || 'GET',
+      headers,
+      body: init.body ? JSON.parse(init.body) : undefined,
+    })
     assert.equal(headers['X-Nihmbus-Device-Protocol'], '1')
     assert.equal(headers['X-Nihmbus-Extension-Protocol'], '1')
     if (path.endsWith('/pair')) {
@@ -32,7 +38,10 @@ function fakeRelay({ commands = [], pollStatus = 200, onIdle = () => {} } = {}) 
       if (pollStatus !== 200) return json(pollStatus, { error: 'nope' })
       const command = queue.shift() ?? null
       if (!command) onIdle()
-      return json(200, { command })
+      return json(200, {
+        command,
+        ...(session ? { session: typeof session === 'function' ? session() : session } : {}),
+      })
     }
     if (path.endsWith('/result')) {
       results.push(JSON.parse(init.body))
@@ -208,4 +217,79 @@ test('works on PopCraft builds without setPanelIcon', async () => {
   const c = createConnector({ api: f.api, fetch: fakeRelay().fetch })
   await c.pair({ code: 'GOOD-CODE', server: 'https://nihmbus.test' })
   assert.equal(c.connection.token, 'nxd_secret')
+})
+
+test('polls report this tab: a session key, what it has open, and whether it is visible', async () => {
+  const { c, relay } = await connected()
+  await c.loop()
+  const poll = relay.log.find((l) => l.path.endsWith('/poll'))
+  assert.ok(poll, 'polled')
+  const q = new URL('https://x' + poll.query).searchParams
+  assert.match(q.get('session'), /^pc[a-z0-9]{22}$/)
+  assert.equal(q.get('label'), 'Page 1 · Poster / Final')
+  assert.equal(q.get('visible'), '1')
+})
+
+test('another tab gets the work: standby, outline icon; this tab again: connected, colour', async () => {
+  const f = fakeApi()
+  let c
+  let active = false
+  let polls = 0
+  const relay = fakeRelay({
+    session: () => ({ active }),
+    onIdle: () => {
+      polls += 1
+      if (polls === 2) active = true
+      if (polls === 3) c.stop()
+    },
+  })
+  c = createConnector({ api: f.api, fetch: relay.fetch, sleep: async () => c.stop() })
+  await c.pair({ code: 'GOOD-CODE', server: 'https://nihmbus.test' })
+  const states = []
+  const orig = f.api.ui.postMessage
+  f.api.ui.postMessage = (m) => {
+    if (m.type === 'state') states.push(m.status)
+    orig(m)
+  }
+  await c.loop()
+  assert.ok(states.includes('standby'), 'standby while another tab is active')
+  assert.equal(states.at(-1), 'connected', 'connected once this tab is active')
+  assert.ok(
+    f.icons.some((o) => o.icon === null),
+    'outline while on standby',
+  )
+  assert.equal(f.icons.at(-1).color, true, 'colour once active')
+})
+
+test('showing or hiding the tab cuts the held poll short and polls again with the new visibility', async () => {
+  const f = fakeApi()
+  let visible = false
+  let onVis = () => {}
+  let c
+  const seen = []
+  const fetch = async (url, init = {}) => {
+    const u = new URL(url)
+    if (u.pathname.endsWith('/pair')) return fakeRelay().fetch(url, init)
+    seen.push(u.searchParams.get('visible'))
+    if (seen.length === 1) {
+      // A held poll: answer only when aborted, like the real relay's 25 s hold.
+      return new Promise((_, reject) => init.signal.addEventListener('abort', () => reject(new Error('aborted'))))
+    }
+    c.stop()
+    return { ok: true, status: 200, json: async () => ({ command: null }) }
+  }
+  c = createConnector({
+    api: f.api,
+    fetch,
+    visible: () => visible,
+    onVisibilityChange: (cb) => (onVis = cb),
+    sleep: async () => c.stop(),
+  })
+  await c.pair({ code: 'GOOD-CODE', server: 'https://nihmbus.test' })
+  const looping = c.loop()
+  await new Promise((r) => setTimeout(r, 10))
+  visible = true
+  onVis()
+  await looping
+  assert.deepEqual(seen, ['0', '1'])
 })

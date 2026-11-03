@@ -134,14 +134,27 @@ const EXPORT_EXT = { PNG: 'png', JPG: 'jpg', WEBP: 'webp', SVG: 'svg', PDF: 'pdf
 
 /**
  * The connector. `deps` are injected so tests can run it without PopCraft: `api` is the `popcraft` global,
- * `fetch` the network, `sleep(ms)` a timer, `random()` for the device id.
+ * `fetch` the network, `sleep(ms)` a timer, `random()` for ids, `visible()` whether this tab is showing and
+ * `onVisibilityChange(cb)` to hear when that changes.
  */
 function createConnector(deps) {
-  const { api, fetch, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), random = () => Math.random() } = deps
+  const {
+    api,
+    fetch,
+    sleep = (ms) => new Promise((r) => setTimeout(r, ms)),
+    random = () => Math.random(),
+    visible = () => true,
+    onVisibilityChange = () => {},
+  } = deps
   let conn = null // { server, token, deviceName, workspaceName }
   let running = false
   let stopRequested = false
   let state = { status: 'idle', detail: '' }
+  // This running copy (one per tab): Nihmbus sends work to the copy in the tab the user is looking at, and says
+  // whether that is us (`active`). Relays that predate sessions never say, so we count as active.
+  const sessionKey = 'pc' + Array.from({ length: 22 }, () => Math.floor(random() * 36).toString(36)).join('')
+  let active = true
+  let pollAbort = null
 
   const ui = (msg) => {
     try {
@@ -169,6 +182,10 @@ function createConnector(deps) {
       conn: conn && { server: conn.server, deviceName: conn.deviceName, workspaceName: conn.workspaceName },
     })
   }
+  /** Connected and getting the work here, or connected but the work goes to another PopCraft tab. */
+  const connectedStatus = () => (active ? 'connected' : 'standby')
+  const STANDBY = 'Your agents are working in another PopCraft tab. Switch to this tab to work here instead.'
+  const setConnected = () => setState(connectedStatus(), active ? '' : STANDBY)
   const headers = (extra = {}) => ({
     'X-Nihmbus-Device-Protocol': String(RELAY_PROTOCOL),
     'X-Nihmbus-Extension-Protocol': String(EXTENSION_PROTOCOL),
@@ -364,6 +381,28 @@ function createConnector(deps) {
     await report(body).catch(() => {})
   }
 
+  /** What this tab has open, for the user and the agent to tell windows apart: "Page 1 · Poster". */
+  async function sessionLabel() {
+    try {
+      const page = await api.getCurrentPage()
+      if (!page) return ''
+      const first = page.childIds && page.childIds[0] ? await api.getNode(page.childIds[0]) : null
+      return [page.name, first && first.name].filter(Boolean).join(' · ').slice(0, 120)
+    } catch {
+      return ''
+    }
+  }
+
+  async function pollUrl() {
+    const q = new URLSearchParams({ session: sessionKey, label: await sessionLabel(), visible: visible() ? '1' : '0' })
+    return `${url(conn.server, 'poll')}?${q}`
+  }
+
+  // Shown or hidden: cut the held poll short so the next one reports it (see the loop).
+  onVisibilityChange(() => {
+    if (pollAbort) pollAbort.abort()
+  })
+
   /** Poll until stopped, revoked or outdated. */
   async function loop() {
     if (running) return
@@ -373,12 +412,20 @@ function createConnector(deps) {
     try {
       while (conn && !stopRequested) {
         let res
+        let aborted = false
+        pollAbort = typeof AbortController === 'function' ? new AbortController() : null
         try {
-          res = await fetch(url(conn.server, 'poll'), { headers: headers() })
-        } catch {
+          res = await fetch(await pollUrl(), { headers: headers(), ...(pollAbort ? { signal: pollAbort.signal } : {}) })
+        } catch (e) {
+          aborted = !!(pollAbort && pollAbort.signal.aborted)
           res = null
+          void e
+        } finally {
+          pollAbort = null
         }
         if (stopRequested) break
+        // The tab was shown or hidden mid-poll: poll again at once, so Nihmbus routes to the right tab.
+        if (aborted) continue
         if (!res || res.status >= 500) {
           setState('offline', 'Can’t reach Nihmbus. Retrying…')
           await sleep(BACKOFF_MS[Math.min(failures++, BACKOFF_MS.length - 1)])
@@ -404,9 +451,10 @@ function createConnector(deps) {
           continue
         }
         failures = 0
-        const { command } = await res.json().catch(() => ({ command: null }))
+        const { command, session } = await res.json().catch(() => ({ command: null }))
+        if (session && typeof session.active === 'boolean') active = session.active
         if (command) await handle(command)
-        setState('connected')
+        setConnected()
       }
     } finally {
       running = false
@@ -423,7 +471,7 @@ function createConnector(deps) {
       if (msg.type === 'ready') return void setState(state.status, state.detail)
       if (msg.type === 'pair') {
         await pair(msg)
-        setState('connected')
+        setConnected()
         void loop()
         return
       }
@@ -443,7 +491,7 @@ function createConnector(deps) {
     // Docked in the rail panel; the size only matters on hosts that still float it.
     await api.showUI({ width: 320, height: 300, title: 'Nihmbus' })
     if (await restore()) {
-      setState('connected')
+      setConnected()
       void loop()
     } else if (state.status === 'idle') {
       setState('disconnected')
@@ -468,5 +516,11 @@ function createConnector(deps) {
 }
 
 if (typeof popcraft !== 'undefined' && !globalThis.__NIHMBUS_TEST__) {
-  createConnector({ api: popcraft, fetch: (...a) => fetch(...a) }).start()
+  createConnector({
+    api: popcraft,
+    fetch: (...a) => fetch(...a),
+    // The plugin's frame is hidden, but its document follows the tab: hidden when the tab is in the background.
+    visible: () => typeof document === 'undefined' || document.visibilityState !== 'hidden',
+    onVisibilityChange: (cb) => typeof document !== 'undefined' && document.addEventListener('visibilitychange', cb),
+  }).start()
 }
