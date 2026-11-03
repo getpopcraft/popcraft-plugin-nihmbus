@@ -1,6 +1,6 @@
 {
   "name": "popcraft-plugin-nihmbus",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "The Nihmbus plugin for PopCraft: connects your PopCraft editor to Nihmbus agents.",
   "license": "MIT",

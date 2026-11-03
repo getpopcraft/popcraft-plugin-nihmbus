@@ -1,7 +1,7 @@
 {
   "id": "popcraft.nihmbus",
   "name": "Nihmbus",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Connect this editor to Nihmbus so your Nihmbus agents can design, animate and export in it. Lives in the right-hand panel.",
   "author": "PopCraft",
   "main": "main.js",
