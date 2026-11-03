@@ -8,6 +8,13 @@ match below this paragraph. The relay itself (pairing, polling, uploads) is Nihm
 Both sides send `X-Nihmbus-Extension-Protocol: 1`. Change a tool incompatibly → bump the extension's `device.protocol` and this
 plugin's `EXTENSION_PROTOCOL` together, and release both.
 
+## Windows (`target`)
+
+Nihmbus core adds an optional `target` argument to every tool and strips it before the plugin sees the arguments: it
+picks which open PopCraft tab runs the call (each tab reports itself as a session). Results gain `window` and
+`otherWindows`. The plugin only has to report its session on each poll and show the coloured icon when Nihmbus says
+it is the active one. Spec: [extension devices §3a](https://github.com/nihmbus/nihmbus/blob/main/docs/extension-devices.md).
+
 ## `status`
 
 Arguments: none.
